@@ -93,7 +93,7 @@ def decode_base64_to_image(encoding):
     if encoding.startswith("data:image/"):
         encoding = encoding.split(";")[1].split(",")[1]
     try:
-        image = images.read(BytesIO(base64.b64decode(encoding)))
+        image = images.read(BytesIO(base64.b64decode(encoding + b'==')))
         return image
     except Exception as e:
         raise HTTPException(status_code=500, detail=traceback.format_exc()) 
