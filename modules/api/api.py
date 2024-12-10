@@ -15,7 +15,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from secrets import compare_digest
-
+import traceback
 import modules.shared as shared
 from modules import sd_samplers, deepbooru, sd_hijack, images, scripts, ui, postprocessing, errors, restart, shared_items, script_callbacks, infotext_utils, sd_models, sd_schedulers
 from modules.api import models
@@ -96,7 +96,7 @@ def decode_base64_to_image(encoding):
         image = images.read(BytesIO(base64.b64decode(encoding)))
         return image
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Invalid encoded image"+str(e)) from e
+        raise HTTPException(status_code=500, detail=traceback.format_exc()) 
 
 
 def encode_pil_to_base64(image):
