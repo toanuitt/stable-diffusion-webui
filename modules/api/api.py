@@ -96,7 +96,7 @@ def decode_base64_to_image(encoding):
         image = images.read(BytesIO(base64.b64decode(encoding)))
         return image
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Invalid encoded image") from e
+        raise HTTPException(status_code=500, detail="Invalid encoded image"+str(e)) from e
 
 
 def encode_pil_to_base64(image):
