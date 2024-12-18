@@ -12,7 +12,7 @@ from modules.shared import opts, state
 
 class Script(scripts.Script):
     def title(self):
-        return "Poor man's outpainting"
+        return "test_1"
 
     def show(self, is_img2img):
         return is_img2img
@@ -21,7 +21,7 @@ class Script(scripts.Script):
         if not is_img2img:
             return None
 
-        pixels = gr.Slider(label="Pixels to expand", minimum=8, maximum=256, step=8, value=128, elem_id=self.elem_id("pixels"))
+        pixels = gr.Slider(label="Pixels to expand", minimum=8, maximum=1000, step=1, value=128, elem_id=self.elem_id("pixels"))
         mask_blur = gr.Slider(label='Mask blur', minimum=0, maximum=64, step=1, value=4, elem_id=self.elem_id("mask_blur"))
         inpainting_fill = gr.Radio(label='Masked content', choices=['fill', 'original', 'latent noise', 'latent nothing'], value='fill', type="index", elem_id=self.elem_id("inpainting_fill"))
         direction = gr.CheckboxGroup(label="Outpainting direction", choices=['left', 'right', 'up', 'down'], value=['left', 'right', 'up', 'down'], elem_id=self.elem_id("direction"))
