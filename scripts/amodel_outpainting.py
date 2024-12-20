@@ -8,6 +8,8 @@ from modules.processing import Processed, process_images
 from modules.shared import opts, state
 from amodal.dift.src.models.dift_sd import SDFeaturizer
 from amodal.dift.src.utils.visualization import Demo
+import skimage
+
 def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.05):
     # helper fft routines that keep ortho normalization and auto-shift before and after fft
     def _fft2(data):
