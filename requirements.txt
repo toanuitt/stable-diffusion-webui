@@ -1,7 +1,6 @@
-# Image Processing
-Pillow  # Only need one instance, case-insensitive
+Pillow  
 opencv-python>=2.4.9
-scikit-image  # Only need one instance
+scikit-image 
 blendmodes
 clean-fid
 facexlib
@@ -9,8 +8,6 @@ kornia
 piexif
 resize-right
 pillow-avif-plugin==1.4.3
-
-# Deep Learning & AI
 torch
 transformers==4.30.2
 pytorch_lightning
@@ -20,15 +17,11 @@ torchdiffeq
 torchsde
 diffusers==0.15.0
 xformers==0.0.23.post1
-accelerate>=0.26.0  # Only need one instance
-
-# Data Science & Math
+accelerate>=0.26.0  
 numpy
 einops
 networkx
 tensorboardX
-
-# Utility & I/O
 GitPython
 diskcache
 fastapi>=0.90.1
@@ -44,7 +37,7 @@ requests
 safetensors
 pyyaml
 imutils
-cvbase  # Only need one instance
+cvbase  
 tqdm
 pycocotools
 ipdb
