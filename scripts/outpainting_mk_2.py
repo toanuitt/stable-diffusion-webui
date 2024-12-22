@@ -141,7 +141,7 @@ class Script(scripts.Script):
 
     def run(self, p, _, pixels, mask_blur, direction, noise_q, color_variation):
         initial_seed_and_info = [None, None]
-
+        print(p.init_images)
         process_width = p.width
         process_height = p.height
 
