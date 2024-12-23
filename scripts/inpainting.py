@@ -10,8 +10,11 @@ from PIL import Image, ImageDraw
 from modules import images
 from modules.processing import Processed, process_images
 from modules.shared import opts, state
-
-
+import requests
+from io import BytesIO
+from Amodal.tools.infer import run, Tester
+from Amodal.tools.extract_dift_amodal import extract
+# this function is taken from https://github.com/parlance-zz/g-diffuser-bot
 def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.05):
     # helper fft routines that keep ortho normalization and auto-shift before and after fft
     def _fft2(data):
@@ -115,11 +118,15 @@ def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.0
 
     return np.clip(matched_noise, 0., 1.)
 
-
+def download_mask(url):
+    response = requests.get(url)
+    mask_image = Image.open(BytesIO(response.content))
+    mask_array = np.array(mask_image.convert('L'))
+    return mask_array
 
 class Script(scripts.Script):
     def title(self):
-        return "Inpainting"
+        return "Amodal_mask"
 
     def show(self, is_img2img):
         return is_img2img
@@ -129,7 +136,7 @@ class Script(scripts.Script):
             return None
 
         info = gr.HTML("<p style=\"margin-bottom:0.75em\">Recommended settings: Sampling Steps: 80-100, Sampler: Euler a, Denoising strength: 0.8</p>")
-        image_size = gr.Slider(label="Image size", minimum=256, maximum=1024, step=64, value=512, elem_id=self.elem_id("image_size"))
+
         pixels = gr.Slider(label="Pixels to expand", minimum=8, maximum=256, step=8, value=128, elem_id=self.elem_id("pixels"))
         mask_blur = gr.Slider(label='Mask blur', minimum=0, maximum=64, step=1, value=8, elem_id=self.elem_id("mask_blur"))
         direction = gr.CheckboxGroup(label="Outpainting direction", choices=['left', 'right', 'up', 'down'], value=['left', 'right', 'up', 'down'], elem_id=self.elem_id("direction"))
@@ -140,15 +147,24 @@ class Script(scripts.Script):
 
     def run(self, p, _, pixels, mask_blur, direction, noise_q, color_variation):
         initial_seed_and_info = [None, None]
-        image = p.init_images
-
         process_width = p.width
         process_height = p.height
-
+        transform = transforms.Compose([
+            transforms.ToTensor(),  # Converts image to PyTorch tensor
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize with ImageNet stats
+        ])
+        # Apply the transformation
+        image_tensor = transform(p.init_images)
+        extract(image_tensor)
+        tester = Tester()
+        tester.run(model_path, image_root, "data/mask_image", "data/dift_features/features.pth")
+        mask_url = "data/mask_image/amodal_mask.jpg"  # Replace with actual URL
+        mask = download_mask(mask_url)
         p.inpaint_full_res = False
         p.inpainting_fill = 1
         p.do_not_save_samples = True
         p.do_not_save_grid = True
+        p.image_mask = mask
 
         left = pixels if "left" in direction else 0
         right = pixels if "right" in direction else 0
@@ -192,6 +208,16 @@ class Script(scripts.Script):
 
             images_to_process = []
             output_images = []
+            base_mask = p.image_mask
+            
+            # Track original mask position
+            mask_pos = {
+                'x': pixels_horiz if is_left else 0,
+                'y': pixels_vert if is_top else 0,
+                'width': base_mask.width,
+                'height': base_mask.height
+            }
+            
             for n in range(count):
                 res_w = init[n].width + pixels_horiz
                 res_h = init[n].height + pixels_vert
@@ -200,14 +226,23 @@ class Script(scripts.Script):
 
                 img = Image.new("RGB", (process_res_w, process_res_h))
                 img.paste(init[n], (pixels_horiz if is_left else 0, pixels_vert if is_top else 0))
-                mask = Image.new("RGB", (process_res_w, process_res_h), "white")
-                draw = ImageDraw.Draw(mask)
+                expansion_mask = Image.new("RGB", (process_res_w, process_res_h), "white")
+                draw = ImageDraw.Draw(expansion_mask)
                 draw.rectangle((
                     expand_pixels + mask_blur_x if is_left else 0,
                     expand_pixels + mask_blur_y if is_top else 0,
                     mask.width - expand_pixels - mask_blur_x if is_right else res_w,
                     mask.height - expand_pixels - mask_blur_y if is_bottom else res_h,
                 ), fill="black")
+
+                # Combine base mask with expansion mask
+                combined_mask = Image.new("RGB", (process_res_w, process_res_h), "white")
+                # Paste original mask in correct position
+                combined_mask.paste(base_mask, (pixels_horiz if is_left else 0, pixels_vert if is_top else 0))
+                # Blend with expansion mask
+                combined_mask = Image.composite(combined_mask, expansion_mask, expansion_mask)
+                
+                p.image_mask = combined_mask
 
                 np_image = (np.asarray(img) / 255.0).astype(np.float64)
                 np_mask = (np.asarray(mask) / 255.0).astype(np.float64)
@@ -219,16 +254,25 @@ class Script(scripts.Script):
                 p.width = target_width if is_horiz else img.width
                 p.height = target_height if is_vert else img.height
 
+                # Update crop region to respect mask boundaries
                 crop_region = (
-                    0 if is_left else output_images[n].width - target_width,
-                    0 if is_top else output_images[n].height - target_height,
-                    target_width if is_left else output_images[n].width,
-                    target_height if is_top else output_images[n].height,
+                    mask_pos['x'] if is_left else output_images[n].width - target_width,
+                    mask_pos['y'] if is_top else output_images[n].height - target_height,
+                    (mask_pos['x'] + mask_pos['width']) if is_left else output_images[n].width,
+                    (mask_pos['y'] + mask_pos['height']) if is_top else output_images[n].height
                 )
-                mask = mask.crop(crop_region)
+                
+                # Apply crop to both mask and image
+                mask = combined_mask.crop(crop_region)
                 p.image_mask = mask
-
                 image_to_process = output_images[n].crop(crop_region)
+                
+                # Update mask position for next iteration
+                if is_left:
+                    mask_pos['x'] += expand_pixels
+                if is_top:
+                    mask_pos['y'] += expand_pixels
+
                 images_to_process.append(image_to_process)
 
             p.init_images = images_to_process

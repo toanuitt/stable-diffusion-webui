@@ -10,10 +10,8 @@ from PIL import Image, ImageDraw
 from modules import images
 from modules.processing import Processed, process_images
 from modules.shared import opts, state
-import requests
-from io import BytesIO
-from Amodal.tools.infer import run, Tester
-from Amodal.tools.extract_dift_amodal import extract
+
+
 # this function is taken from https://github.com/parlance-zz/g-diffuser-bot
 def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.05):
     # helper fft routines that keep ortho normalization and auto-shift before and after fft
@@ -118,11 +116,7 @@ def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.0
 
     return np.clip(matched_noise, 0., 1.)
 
-def download_mask(url):
-    response = requests.get(url)
-    mask_image = Image.open(BytesIO(response.content))
-    mask_array = np.array(mask_image.convert('L'))
-    return mask_array
+
 
 class Script(scripts.Script):
     def title(self):
@@ -147,24 +141,14 @@ class Script(scripts.Script):
 
     def run(self, p, _, pixels, mask_blur, direction, noise_q, color_variation):
         initial_seed_and_info = [None, None]
+
         process_width = p.width
         process_height = p.height
-        transform = transforms.Compose([
-            transforms.ToTensor(),  # Converts image to PyTorch tensor
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize with ImageNet stats
-        ])
-        # Apply the transformation
-        image_tensor = transform(p.init_images)
-        extract(image_tensor)
-        tester = Tester()
-        tester.run(model_path, image_root, "data/mask_image", "data/dift_features/features.pth")
-        mask_url = "data/mask_image/amodal_mask.jpg"  # Replace with actual URL
-        mask = download_mask(mask_url)
+
         p.inpaint_full_res = False
         p.inpainting_fill = 1
         p.do_not_save_samples = True
         p.do_not_save_grid = True
-        p.image_mask = mask
 
         left = pixels if "left" in direction else 0
         right = pixels if "right" in direction else 0
