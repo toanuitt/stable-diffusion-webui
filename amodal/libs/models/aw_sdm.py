@@ -8,11 +8,13 @@ from . import SingleStageModel
 
 class AWSDM(SingleStageModel):
 
-    def __init__(self, params, load_pretrain=None, dist_model=False):
+    def __init__(self, params, pretrained_path=None, dist_model=False):
         super(AWSDM, self).__init__(params, dist_model)
         self.params = params
         self.use_rgb = params.get("use_rgb", False)
 
+        if pretrained_path is not None:
+            self.load_state(pretrained_path)
         # loss
         self.criterion = nn.CrossEntropyLoss()
 
@@ -59,7 +61,7 @@ class AWSDM(SingleStageModel):
 
         return 0, 1, 0, 1, intersection, union, target
 
-    def forward_only(self, ret_loss=True, val=False):
+    def forward_only(self, ret_loss=True):
         with torch.no_grad():
             if self.use_rgb:
                 output = self.model(self.mask, self.rgb)

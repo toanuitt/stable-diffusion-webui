@@ -1,10 +1,16 @@
 import argparse
 import os
+import sys
+import json
+
 import torch
 from PIL import Image
-from src.models.dift_sd import SDFeaturizer
 from torchvision.transforms import PILToTensor
 from tqdm import tqdm
+import numpy as np
+
+sys.path.append(".")
+from libs.dift.dift_sd import SDFeaturizer
 
 
 def parse_args():
@@ -66,6 +72,12 @@ def parse_args():
         default=1,
         help="the number of images to take feature",
     )
+    parser.add_argument(
+        "--anno-path",
+        type=str,
+        default=1,
+        help="the path to json annotation file",
+    )
     args = parser.parse_args()
     return args
 
@@ -85,25 +97,56 @@ def get_image_tensor(image_path: str, image_size: list):
     return img_tensor
 
 
+def get_annos(anno_path):
+    with open(anno_path, "r") as anno_file:
+        content = json.load(anno_file)
+
+    image_dict = dict(
+        [[img_info["id"], img_info] for img_info in content["images"]]
+    )
+
+    annos = []
+    for anno in content["annotations"]:
+        img_info = image_dict[anno["image_id"]]
+        black_start = 0
+        black_end = 0
+        if anno["last_col"] > 0:
+            black_start = anno["last_col"]
+            black_end = img_info["width"]
+        else:
+            black_end = anno["last_col"] + 1
+
+        annos.append(
+            {
+                "id": anno["id"],
+                "file_name": img_info["file_name"],
+                "image_height": img_info["height"],
+                "black_start": black_start,
+                "black_end": black_end,
+            }
+        )
+
+    return annos
+
+
 def main(args):
     dift = SDFeaturizer(sd_id=args.model_id)
     up_ft_indices = [0, 1, 2, 3]
     imgs_path = args.input_path
     save_path = args.output_path
-    start_index = args.start_index
-    end_index = start_index + args.no_image
-    img_names = [
-        img_name for img_name in os.listdir(imgs_path) if is_image(img_name)
-    ]
 
-    if end_index >= len(img_names):
-        end_index = len(img_names)
+    annos = get_annos(args.anno_path)
 
-    chosen_img_names = img_names[start_index:end_index]
+    for anno in tqdm(annos):
+        img_path = os.path.join(imgs_path, anno["file_name"])
+        img = np.array(Image.open(img_path))
+        img[
+            0 : anno["image_height"], anno["black_start"] : anno["black_end"]
+        ] = [0, 0, 0]
 
-    for img_name in tqdm(chosen_img_names):
-        img_path = os.path.join(imgs_path, img_name)
-        img_tensor = get_image_tensor(img_path, args.img_size)
+        img_tensor = (torch.Tensor(img) / 255.0 - 0.5) * 2
+        img_tensor = img_tensor.permute(2, 0, 1)
+
         fts = dift.forward(
             img_tensor=img_tensor,
             prompt=args.prompt,
@@ -119,7 +162,9 @@ def main(args):
             if not os.path.exists(cur_folder):
                 os.makedirs(cur_folder)
 
-            tensor_file_name = os.path.join(cur_folder, img_name[:-4] + ".pt")
+            tensor_file_name = os.path.join(
+                cur_folder, f"{anno['file_name'][:-4]}_{anno['id']}_.pt"
+            )
             torch.save(value.squeeze(0).cpu(), tensor_file_name)
 
 
