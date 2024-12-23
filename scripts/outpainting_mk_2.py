@@ -165,7 +165,7 @@ class Script(scripts.Script):
         p.do_not_save_samples = True
         p.do_not_save_grid = True
         p.image_mask = mask
-        
+
         left = pixels if "left" in direction else 0
         right = pixels if "right" in direction else 0
         up = pixels if "up" in direction else 0
