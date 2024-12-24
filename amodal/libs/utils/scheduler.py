@@ -1,6 +1,5 @@
 import torch
 from bisect import bisect_right
-import ipdb
 
 class _LRScheduler(object):
     def __init__(self, optimizer, last_iter=-1):

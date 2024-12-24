@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from skimage.morphology import convex_hull
 
-from libs import utils
+from amodal.libs import utils
 
 # from torch.nn import functional as F
 

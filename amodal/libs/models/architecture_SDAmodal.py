@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from libs.models.backbone.unet.unet_parts import inconv, down, up, outconv
+from amodal.libs.models.backbone.unet.unet_parts import inconv, down, up, outconv
 
 
 class UNetSDM5Skip(nn.Module):

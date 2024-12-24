@@ -1,7 +1,6 @@
 import numpy as np
 
 import torch
-import ipdb
 
 def visualize_tensor(tensors_dict, mean, div):
     together = []

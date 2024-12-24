@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from libs import utils
-import libs.utils.inference as infer
+from amodal.libs import utils
+import amodal.libs.utils.inference as infer
 from . import SingleStageModel
 
 
