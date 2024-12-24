@@ -3,8 +3,8 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
-from libs.models import backbone
-from libs import utils
+from amodal.libs.models import backbone
+from amodal.libs import utils
 
 
 class SingleStageModel(object):
