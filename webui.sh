@@ -280,6 +280,11 @@ prepare_tcmalloc() {
         fi
     fi
 }
+if ! python -c "import pycocotools" &>/dev/null; then
+    printf "\n%s\n" "${delimiter}"
+    printf "Installing pycocotools...\n"
+    "${python_cmd}" -m pip install pycocotools
+fi
 
 KEEP_GOING=1
 export SD_WEBUI_RESTART=tmp/restart
@@ -302,11 +307,7 @@ while [[ "$KEEP_GOING" -eq "1" ]]; do
         KEEP_GOING=0
     fi
 
-if ! python -c "import pycocotools" &>/dev/null; then
-    printf "\n%s\n" "${delimiter}"
-    printf "Installing pycocotools...\n"
-    "${python_cmd}" -m pip install pycocotools
-fi
+
 
 done
 
