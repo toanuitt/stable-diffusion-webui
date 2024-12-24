@@ -11,9 +11,9 @@ from tqdm import tqdm
 import torchvision.transforms as transforms
 
 sys.path.append(".")
-from libs import models
-from libs.utils import inference as infer
-from libs.utils.data_utils import mask_to_bbox
+from amodal.libs import models
+from amodal.libs.utils import inference as infer
+from amodal.libs.utils.data_utils import mask_to_bbox
 from pycocotools.mask import encode, decode
 
 
