@@ -12,8 +12,8 @@ from modules.processing import Processed, process_images
 from modules.shared import opts, state
 import requests
 from io import BytesIO
-from Amodal.tools.infer import run, Tester
-from Amodal.tools.extract_dift_amodal import extract
+from amodal.tools.infer import run, Tester
+from amodal.tools.extract_dift_amodal import extract
 # this function is taken from https://github.com/parlance-zz/g-diffuser-bot
 def get_matched_noise(_np_src_image, np_mask_rgb, noise_q=1, color_variation=0.05):
     # helper fft routines that keep ortho normalization and auto-shift before and after fft
