@@ -301,11 +301,13 @@ while [[ "$KEEP_GOING" -eq "1" ]]; do
     if [[ ! -f tmp/restart ]]; then
         KEEP_GOING=0
     fi
-done
 
-# Add this block to check and install pycocotools
 if ! python -c "import pycocotools" &>/dev/null; then
     printf "\n%s\n" "${delimiter}"
     printf "Installing pycocotools...\n"
     "${python_cmd}" -m pip install pycocotools
 fi
+
+done
+
+# Add this block to check and install pycocotools
